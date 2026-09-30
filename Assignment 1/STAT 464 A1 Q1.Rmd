@@ -1,0 +1,150 @@
+---
+title: "STAT 464 Assignment 1 Question 1"
+author: "Edward Tanurkov"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(itsmr)
+```
+
+## Load data
+
+```{r}
+co2 <- read.csv("D:/University/Fourth Year - 2026-2027/STAT 464/STAT-464/Assignment 1/co2.txt", sep="")
+View(co2)
+```
+
+## a) Time Series Plot
+```{r}
+
+# Combine year and month into a Date (first day of each month)
+co2$date <- as.Date(paste(co2$year, co2$month, 1, sep = "-"))
+
+# Major ticks every 5 years, labelled with month and year for the ones divisible by 10
+major_named <- seq(as.Date("1980-01-01"), max(co2$date), by = "10 years")
+major_unnamed <- seq(as.Date("1985-01-01"), max(co2$date), by = "10 years")
+# Minor unlabeled ticks every year
+minor <- seq(as.Date("1980-01-01"), max(co2$date), by = "1 year")
+# General axis adder function
+add_axis <- function() {
+  axis(1, at = major_named, labels = format(major_named, "%b %Y"), cex.axis = 0.8)
+  axis(1, at = major_unnamed, labels = FALSE, cex.axis = 0.8)
+  axis(1, at = minor, labels = FALSE, tck = -0.01)
+}
+
+
+# Plot without the default x-axis
+plot(co2$date, co2$average, type = "l", col = "blue", xaxt = "n",
+     main = "Monthly Global Average Marine Surface CO2 (ppm)",
+     xlab = "Month and Year",
+     ylab = "Average Surface CO2 (ppm)")
+add_axis()
+
+# Major ticks every 5 years, labelled with month and year
+# major_unnamed <- seq(as.Date("1980-01-01"), max(co2$date), by = "10 years")
+# axis(1, at = major, labels = format(major, "%b %Y"), cex.axis = 0.8)
+
+
+# axis(1, at = major, labels = FALSE, cex.axis = 0.8)
+
+# Minor unlabelled ticks every year
+
+# axis(1, at = minor, labels = FALSE, tck = -0.01)
+```
+## b) Trend Estimation
+```{r}
+pr_trend <- trend(co2$average, p = 2) # Quadratic Polynomial Regression
+mas_trend <- smooth.ma(co2$average, q = 10) # MAS
+
+# Residuals
+pr_resid  <- co2$average - pr_trend
+mas_resid <- co2$average - mas_trend
+```
+
+```{r}
+# Plot 1: original series with quadratic trend
+plot(co2$date, co2$average, type = "l", col = "blue", xaxt = "n",
+     main = "CO2 with Quadratic Polynomial Trend",
+     xlab = "Month and Year", ylab = "Average Surface CO2 (ppm)")
+lines(co2$date, pr_trend, col = "red", lwd = 2)
+add_axis()
+legend("topleft", legend = c("Original", "Quadratic trend"),
+       col = c("blue", "red"), lty = 1, lwd = c(1, 2))
+```
+
+```{r}
+# Plot 2: original series with moving average trend
+plot(co2$date, co2$average, type = "l", col = "blue", xaxt = "n",
+     main = "CO2 with Moving Average Trend (q = 10)",
+     xlab = "Month and Year", ylab = "Average Surface CO2 (ppm)")
+lines(co2$date, mas_trend, col = "darkgreen", lwd = 2)
+add_axis()
+legend("topleft", legend = c("Original", "Moving average"),
+       col = c("blue", "darkgreen"), lty = 1, lwd = c(1, 2))
+```
+
+```{r}
+# Plot 3: quadratic trend residuals
+plot(co2$date, pr_resid, type = "l", col = "red", xaxt = "n",
+     main = "Residuals from Quadratic Polynomial Trend",
+     xlab = "Month and Year", ylab = "Residual CO2 (ppm)")
+abline(h = 0, lty = 2)
+add_axis()
+```
+
+```{r}
+# Plot 4: moving average residuals
+plot(co2$date, mas_resid, type = "l", col = "darkgreen", xaxt = "n",
+     main = "Residuals from Moving Average Trend (q = 10)",
+     xlab = "Month and Year", ylab = "Residual CO2 (ppm)")
+abline(h = 0, lty = 2)
+add_axis()
+```
+
+## c) Seasonal Component Estimation
+```{r}
+harmonic_estim <- hr(mas_resid, d = 12)
+s1_estim <- season(mas_resid, d = 12)
+```
+
+```{r}
+# Plot 1: residuals with harmonic regression estimate
+plot(co2$date, mas_resid, type = "l", col = "darkgreen", xaxt = "n",
+     main = "MA Residuals with Harmonic Regression Seasonal Estimate (d = 12)",
+     xlab = "Month and Year", ylab = "Residual CO2 (ppm)")
+lines(co2$date, harmonic_estim, col = "red", lwd = 2)
+abline(h = 0, lty = 2)
+add_axis()
+legend("topleft", legend = c("MA residuals", "Harmonic regression"),
+       col = c("darkgreen", "red"), lty = 1, lwd = c(1, 2))
+```
+
+```{r}
+# Plot 2: residuals with season() estimate
+plot(co2$date, mas_resid, type = "l", col = "darkgreen", xaxt = "n",
+     main = "MA Residuals with season() Seasonal Estimate (d = 12)",
+     xlab = "Month and Year", ylab = "Residual CO2 (ppm)")
+lines(co2$date, s1_estim, col = "purple", lwd = 2)
+abline(h = 0, lty = 2)
+add_axis()
+legend("topleft", legend = c("MA residuals", "season()"),
+       col = c("darkgreen", "purple"), lty = 1, lwd = c(1, 2))
+```
+```{r}
+idx <- 1:60   # first 5 years
+plot(co2$date[idx], mas_resid[idx], type = "l", col = "darkgreen",
+     xlab = "Month and Year", ylab = "Residual CO2 (ppm)",
+     main = "Zoom: First 5 Years")
+lines(co2$date[idx], harmonic_estim[idx], col = "red", lwd = 2)
+lines(co2$date[idx], s1_estim[idx], col = "purple", lwd = 2)
+legend("topright", legend = c("MA residuals", "hr()", "season()"),
+       col = c("darkgreen", "red", "purple"), lty = 1, lwd = c(1, 3))
+```

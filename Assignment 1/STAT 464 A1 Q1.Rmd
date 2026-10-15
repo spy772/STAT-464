@@ -1,6 +1,6 @@
 ---
 title: "STAT 464 Assignment 1 Question 1"
-author: "Edward Tanurkov"
+author: "Edward Tanurkov - 20401544"
 date: "`r Sys.Date()`"
 output:
   pdf_document: default
@@ -18,8 +18,7 @@ library(itsmr)
 ## Load data
 
 ```{r}
-co2 <- read.csv("D:/University/Fourth Year - 2026-2027/STAT 464/STAT-464/Assignment 1/co2.txt", sep="")
-View(co2)
+co2 <- read.table("co2.txt", header = TRUE)
 ```
 
 ## a) Time Series Plot
@@ -47,18 +46,10 @@ plot(co2$date, co2$average, type = "l", col = "blue", xaxt = "n",
      xlab = "Month and Year",
      ylab = "Average Surface CO2 (ppm)")
 add_axis()
-
-# Major ticks every 5 years, labelled with month and year
-# major_unnamed <- seq(as.Date("1980-01-01"), max(co2$date), by = "10 years")
-# axis(1, at = major, labels = format(major, "%b %Y"), cex.axis = 0.8)
-
-
-# axis(1, at = major, labels = FALSE, cex.axis = 0.8)
-
-# Minor unlabelled ticks every year
-
-# axis(1, at = minor, labels = FALSE, tck = -0.01)
 ```
+
+Upward trend and seemingly a yearly period (or a period of 12 given each data point is one month in the year).
+
 ## b) Trend Estimation
 ```{r}
 pr_trend <- trend(co2$average, p = 2) # Quadratic Polynomial Regression
@@ -70,7 +61,7 @@ mas_resid <- co2$average - mas_trend
 ```
 
 ```{r}
-# Plot 1: original series with quadratic trend
+# Time series with quadratic trend
 plot(co2$date, co2$average, type = "l", col = "blue", xaxt = "n",
      main = "CO2 with Quadratic Polynomial Trend",
      xlab = "Month and Year", ylab = "Average Surface CO2 (ppm)")
@@ -81,7 +72,7 @@ legend("topleft", legend = c("Original", "Quadratic trend"),
 ```
 
 ```{r}
-# Plot 2: original series with moving average trend
+# Time series with moving average trend
 plot(co2$date, co2$average, type = "l", col = "blue", xaxt = "n",
      main = "CO2 with Moving Average Trend (q = 10)",
      xlab = "Month and Year", ylab = "Average Surface CO2 (ppm)")
@@ -92,7 +83,7 @@ legend("topleft", legend = c("Original", "Moving average"),
 ```
 
 ```{r}
-# Plot 3: quadratic trend residuals
+# Quadratic trend residuals
 plot(co2$date, pr_resid, type = "l", col = "red", xaxt = "n",
      main = "Residuals from Quadratic Polynomial Trend",
      xlab = "Month and Year", ylab = "Residual CO2 (ppm)")
@@ -101,13 +92,15 @@ add_axis()
 ```
 
 ```{r}
-# Plot 4: moving average residuals
+# Moving average residuals
 plot(co2$date, mas_resid, type = "l", col = "darkgreen", xaxt = "n",
      main = "Residuals from Moving Average Trend (q = 10)",
      xlab = "Month and Year", ylab = "Residual CO2 (ppm)")
 abline(h = 0, lty = 2)
 add_axis()
 ```
+
+For the preferred trend estimator, I would say that the MAS estimator is of better quality. Most importantly, the residuals have a smaller range of about -3 to about 2, whereas the quadratic estimator has a larger range between about -4 and 3. The tighter resisudal range, while having a similar average across the residuals (visually-speaking) means that the MAS method is more accurate overall. Secondly, the MAS estimator line goes through roughly the middle of the time series data, while the quadtratic estimator line veers noticeably away between 1988 and 1999, 2001 and 2003, and finally 2008 and 2015. So for a large majority of the data, the estimator has a high residual and doesn't fit the trend as well as MAS.
 
 ## c) Seasonal Component Estimation
 ```{r}
@@ -116,7 +109,7 @@ s1_estim <- season(mas_resid, d = 12)
 ```
 
 ```{r}
-# Plot 1: residuals with harmonic regression estimate
+# Residuals with harmonic regression estimate
 plot(co2$date, mas_resid, type = "l", col = "darkgreen", xaxt = "n",
      main = "MA Residuals with Harmonic Regression Seasonal Estimate (d = 12)",
      xlab = "Month and Year", ylab = "Residual CO2 (ppm)")
@@ -128,7 +121,7 @@ legend("topleft", legend = c("MA residuals", "Harmonic regression"),
 ```
 
 ```{r}
-# Plot 2: residuals with season() estimate
+# Residuals with season() estimate
 plot(co2$date, mas_resid, type = "l", col = "darkgreen", xaxt = "n",
      main = "MA Residuals with season() Seasonal Estimate (d = 12)",
      xlab = "Month and Year", ylab = "Residual CO2 (ppm)")
@@ -138,13 +131,23 @@ add_axis()
 legend("topleft", legend = c("MA residuals", "season()"),
        col = c("darkgreen", "purple"), lty = 1, lwd = c(1, 2))
 ```
+Harmonic regression overestimates the seasonal component at peaks and troughs because it uses a singular amplitude for the entire time series. As such, if there are portions of the time series that have variable peak/trough distance from the centre of the sinusoidal at that portion in seasonality, the average amplitude that is found will cause the harmonic regressor to have a higher peak or trough than the actual time series because it cannot perfectly account for this variability. 
+
+To fix this, we can use the `s1` method mentioned in the text (implemented as `season()` in the `ITSMR` package) to use MAS in order to perform a more dynamic amplitude in the seasonality estimator for each respective seasonal portion of the time series, rather than assuming a constant average amplitude across the entire dataset. This was implemented above as already shown.
+
 ```{r}
-idx <- 1:60   # first 5 years
-plot(co2$date[idx], mas_resid[idx], type = "l", col = "darkgreen",
-     xlab = "Month and Year", ylab = "Residual CO2 (ppm)",
-     main = "Zoom: First 5 Years")
-lines(co2$date[idx], harmonic_estim[idx], col = "red", lwd = 2)
-lines(co2$date[idx], s1_estim[idx], col = "purple", lwd = 2)
-legend("topright", legend = c("MA residuals", "hr()", "season()"),
-       col = c("darkgreen", "red", "purple"), lty = 1, lwd = c(1, 3))
+season_resid <- mas_resid - s1_estim
+
+# Line plot of the final residuals
+plot(co2$date, season_resid, type = "l", col = "blue", xaxt = "n",
+     main = "Residuals After season() Fit Elimination",
+     xlab = "Month and Year", ylab = "Final Residuals (ppm)")
+abline(h = 0, lty = 2)
+add_axis()
 ```
+```{r}
+# ACF plot of the final residuals
+acf(season_resid, na.action = na.pass,
+    main = "ACF of Residuals After season() Fit")
+```
+Given the very jagged residuals in the season() fit elimination plot, along with the majority of the ACF intervals extending beyond the confidence intervals for white noise (the blue dashed lines), it seems that we can be very confident that systemic temporal structure remains. In the ACF plot, if the majority of the values at each lag interval are within the confidence interval, then we can assume that anything remaining was a white noise process as part of regular randomness present in the data. However, this is not the case, and is further corroborated by some residuals that are less, but still significant, compared to the residuals before the fit elimination (i.e they are about half as small than the MA `season()` residuals above, but are still quite large).

@@ -69,9 +69,105 @@ legend("topleft", legend = c("Original", "Linear trend"),
 
 ## c) Sample ACF and Linear Regression Coefficient
 ```{r}
-acf(lin_resid, na.action = na.pass,
+lin_resid_acf <- acf(lin_resid, na.action = na.pass,
     main = "ACF of Linear Residuals on Close Price")
 ```
 ```{r}
+r <- lin_resid # For consistency with the formula in the question
+n <- length(r)
+r_t   <- r[2:n] # Start at t = 2
+r_t1 <- r[1:(n-1)]
 
+model <- lm(r_t ~ r_t1 - 1) # - 1 will remove the intercept term
+
+summary(model)
 ```
+The estimated coefficient phi_hat is: 
+```{r}
+phi_hat <- coef(model)["r_t1"]
+print(phi_hat)
+```
+
+```{r}
+plot(r_t1, r_t,
+     xlab = expression(r[t-1]), 
+     ylab = expression(r[t]),
+     main = expression(paste("Scatterplot of Residuals ", r[t], " vs ", r[t-1])),
+     pch = 19, 
+     col = "darkgray")
+
+abline(model, col = "blue", lwd = 2)
+abline(h = 0, v = 0, lty = 2, col = "lightgray")
+```
+
+```{r}
+lin_resid_acf <- acf(lin_resid, na.action = na.pass,
+               main = "Sample ACF vs. Theoretical AR(1) on Close Price",
+               col = "darkgray", lwd = 2)
+
+lags <- drop(lin_resid_acf$lag)
+theoretical_acf <- phi_hat^lags
+
+lines(lags, theoretical_acf, 
+      type = "b",
+      col = "blue", 
+      pch = 19,
+      lwd = 2)
+
+legend("topright", 
+       legend = c("Sample ACF", paste0("Theoretical AR(1) (phi = ", round(phi_hat, 4), ")")),
+       col = c("darkgray", "blue"), 
+       lty = 1, 
+       lwd = 2, 
+       pch = c(NA, 19))
+```
+
+```{r}
+acf_original <- acf(lin_resid, na.action = na.pass, plot = FALSE)
+acf_ar1      <- acf(residuals(model), na.action = na.pass, plot = FALSE)
+
+# Extract flat vectors
+lags <- drop(acf_original$lag)
+val_original <- drop(acf_original$acf)
+val_ar1      <- drop(acf_ar1$acf)
+
+# Plot the original residuals
+plot(lags, val_original, 
+     type = "h",
+     col = "darkgray", 
+     lwd = 1.5,
+     ylim = c(min(c(val_original, val_ar1, -0.2)), 1), # Adjust ylim to how big residuals are
+     xlab = "Lag", 
+     ylab = "ACF",
+     main = "ACF Comparison: Original vs. AR(1) Model Residuals")
+
+# Add squares at the top of the original ACF bars
+points(lags, val_original, 
+       pch = 15,
+       col = "darkgray", 
+       cex = 1.2)
+
+# Overlay the AR(1) model residual bars
+lines(lags, val_ar1, 
+      type = "h", 
+      col = "blue", 
+      lwd = 3)
+
+# Add circles at the top of the AR(1) ACF bars
+points(lags, val_ar1, 
+       pch = 19,
+       col = "blue", 
+       cex = 1.2)
+
+# Add the x-axis
+abline(h = 0, lty = 1, col = "black")
+
+legend("topright", 
+       legend = c("Original Residuals (Squares)", "AR(1) Model Residuals (Circles)"),
+       col = c("darkgray", "blue"), 
+       lty = 1, 
+       lwd = c(3, 3), 
+       pch = c(19, 19))
+```
+
+**<Comment on how well the estimated AR(1) process matches the residuals.>**

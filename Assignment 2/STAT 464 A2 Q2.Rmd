@@ -31,4 +31,5 @@ acf(X_t, lag.max = 50,
     main = expression(paste("Sample ACF of ", X[t])),
     col = "darkgray", lwd = 2)
 ```
-**<Explain why the Sample ACF has the form it does>**
+
+This ACF has the form it does by attempting to average towards 0 for the ACF when the lag `h != 0`. At `h = 0`, clearly we see that the ACF = 1 just like with the true/theoretical ACF computed. However, at `h != 0` it isn't exactly ACF = 0 like the theoretical formula, but trends towards it and likely will have some more negative lags `h > 50` to produce an average ~= 0.

@@ -34,7 +34,8 @@ yearly_labels <- c("2010", "2011", "2012", "2013", "2014", "2015", "2016")
 
 add_axis <- function() {
   axis(1, at = yearly_ticks, labels = yearly_labels, cex.axis = 0.8)
-  axis(1, at = quarterly_ticks, labels = FALSE, tck = -0.01)
+  axis(1, at = quarterly_ticks, labels = FALSE, tck = -0.01) 
+  # Added smaller tick marks for personal clarity
 }
 
 plot(dow$Date, dow$Close, 
@@ -47,30 +48,37 @@ plot(dow$Date, dow$Close,
 
 add_axis()
 ```
-**<comment on any apparent trend here>**
+Looks like a linearly-increasing trend overall. Just over $1 per year on average.
+
 
 ## b) Linear Trend Fit
 ```{r}
 lin_trend <- trend(dow$Close, p = 1) # Linear Trend
-lin_resid  <- dow$Close - lin_trend
+lin_resid <- dow$Close - lin_trend
 ```
 
 ```{r}
-# Time series with quadratic trend
-plot(dow$Date, dow$Close, type = "l", col = "blue", xaxt = "n",
+plot(dow$Date, dow$Close, 
+     type = "l", 
+     col = "blue", 
+     xaxt = "n",
      main = "DOW Close with Linear Trend",
-     xlab = "Month and Year", ylab = "Closing Price")
+     xlab = "Month and Year", 
+     ylab = "Closing Price")
+
 lines(dow$Date, lin_trend, col = "red", lwd = 2)
 add_axis()
+
 legend("topleft", legend = c("Original", "Linear trend"),
        col = c("blue", "red"), lty = 1, lwd = c(1, 2))
 ```
-**<comment on if residuals appear to be a WN process>**
+Given the randomness of the residuals and how jagged they are, they seem normally distributed like how a WN process would be. Hence, they appear like a WN process.
+
 
 ## c) Sample ACF and Linear Regression Coefficient
 ```{r}
-lin_resid_acf <- acf(lin_resid, na.action = na.pass,
-    main = "ACF of Linear Residuals on Close Price")
+lin_resid_acf <- acf(lin_resid,
+                     main = "ACF of Linear Residuals on Close Price")
 ```
 ```{r}
 r <- lin_resid # For consistency with the formula in the question
@@ -102,8 +110,8 @@ abline(h = 0, v = 0, lty = 2, col = "lightgray")
 
 ```{r}
 lin_resid_acf <- acf(lin_resid, na.action = na.pass,
-               main = "Sample ACF vs. Theoretical AR(1) on Close Price",
-               col = "darkgray", lwd = 2)
+                     main = "Sample ACF vs. Theoretical AR(1) on Close Price",
+                     col = "darkgray", lwd = 2)
 
 lags <- drop(lin_resid_acf$lag)
 theoretical_acf <- phi_hat^lags
@@ -115,7 +123,8 @@ lines(lags, theoretical_acf,
       lwd = 2)
 
 legend("topright", 
-       legend = c("Sample ACF", paste0("Theoretical AR(1) (phi = ", round(phi_hat, 4), ")")),
+       legend = c("Sample ACF", 
+                  paste0("Theoretical AR(1) (phi = ", round(phi_hat, 4), ")")),
        col = c("darkgray", "blue"), 
        lty = 1, 
        lwd = 2, 
@@ -123,38 +132,39 @@ legend("topright",
 ```
 
 ```{r}
-acf_original <- acf(lin_resid, na.action = na.pass, plot = FALSE)
+acf_orig <- acf(lin_resid, na.action = na.pass, plot = FALSE)
 acf_ar1      <- acf(residuals(model), na.action = na.pass, plot = FALSE)
 
 # Extract flat vectors
-lags <- drop(acf_original$lag)
-val_original <- drop(acf_original$acf)
-val_ar1      <- drop(acf_ar1$acf)
+lags <- drop(acf_orig$lag)
+res_orig <- drop(acf_orig$acf)
+res_ar1 <- drop(acf_ar1$acf)
 
 # Plot the original residuals
-plot(lags, val_original, 
+plot(lags, res_orig, 
      type = "h",
      col = "darkgray", 
      lwd = 1.5,
-     ylim = c(min(c(val_original, val_ar1, -0.2)), 1), # Adjust ylim to how big residuals are
+     # Adjust ylim to how big residuals are
+     ylim = c(min(c(res_orig, res_ar1, -0.2)), 1),
      xlab = "Lag", 
      ylab = "ACF",
      main = "ACF Comparison: Original vs. AR(1) Model Residuals")
 
 # Add squares at the top of the original ACF bars
-points(lags, val_original, 
+points(lags, res_orig, 
        pch = 15,
        col = "darkgray", 
        cex = 1.2)
 
 # Overlay the AR(1) model residual bars
-lines(lags, val_ar1, 
+lines(lags, res_ar1, 
       type = "h", 
       col = "blue", 
       lwd = 3)
 
 # Add circles at the top of the AR(1) ACF bars
-points(lags, val_ar1, 
+points(lags, res_ar1, 
        pch = 19,
        col = "blue", 
        cex = 1.2)
@@ -170,4 +180,6 @@ legend("topright",
        pch = c(19, 19))
 ```
 
-**<Comment on how well the estimated AR(1) process matches the residuals.>**
+Seems like the AR(1) process' residuals show that the AR(1) process' method of accounting for the explained variance in the time series is strong, with a low correlation between residuals past the first lag. The remaining correlation would likely be stemming from any unexplained variance, or white noise, in the time series.
+
+Compared to the original model's residuals, it is a much stronger fit. The original residuals seem to struggle to properly model the time series.

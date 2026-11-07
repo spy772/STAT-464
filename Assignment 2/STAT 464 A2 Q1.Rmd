@@ -114,7 +114,7 @@ lin_resid_acf <- acf(lin_resid, na.action = na.pass,
                      col = "darkgray", lwd = 2)
 
 lags <- drop(lin_resid_acf$lag)
-theoretical_acf <- phi_hat^lags
+theoretical_acf <- phi_hat^lags # By the course notes, acf of AR(1) is this
 
 lines(lags, theoretical_acf, 
       type = "b",
@@ -133,9 +133,8 @@ legend("topright",
 
 ```{r}
 acf_orig <- acf(lin_resid, na.action = na.pass, plot = FALSE)
-acf_ar1      <- acf(residuals(model), na.action = na.pass, plot = FALSE)
+acf_ar1 <- acf(residuals(model), na.action = na.pass, plot = FALSE)
 
-# Extract flat vectors
 lags <- drop(acf_orig$lag)
 res_orig <- drop(acf_orig$acf)
 res_ar1 <- drop(acf_ar1$acf)
@@ -169,7 +168,7 @@ points(lags, res_ar1,
        col = "blue", 
        cex = 1.2)
 
-# Add the x-axis
+# Add the y = 0 line for clarity
 abline(h = 0, lty = 1, col = "black")
 
 legend("topright", 

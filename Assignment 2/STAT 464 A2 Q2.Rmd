@@ -1,0 +1,35 @@
+---
+title: "STAT 464 Assignment 2 Question 2"
+author: "Edward Tanurkov - 20401544"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(itsmr)
+```
+
+## Set up time series
+```{r}
+Z_t <- rnorm(100, 0, 2)
+t <- c(1:100)
+
+X_t <- 0.1*t + Z_t
+```
+
+## ACF Plotting
+```{r}
+h <- c(0:50)
+
+acf(X_t, lag.max = 50, 
+    main = expression(paste("Sample ACF of ", X[t])),
+    col = "darkgray", lwd = 2)
+```
+
+This ACF has the form it does by attempting to average towards 0 for the ACF when the lag `h != 0`. At `h = 0`, clearly we see that the ACF = 1 just like with the true/theoretical ACF computed. However, at `h != 0` it isn't exactly ACF = 0 like the theoretical formula, but trends towards it and likely will have some more negative lags `h > 50` to produce an average ~= 0.
